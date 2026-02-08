@@ -80,6 +80,11 @@ def parse_wrk(file):
     match = re.search(r"(\d+)\s+requests in", txt)
     if match:
         return int(match.group(1))
+    # If we can't parse, print the file content for debugging
+    print(f"⚠️  Could not parse wrk output. File content:")
+    print(f"--- {file} ---")
+    print(txt[:500])
+    print("---")
     raise ValueError(f"Could not parse request count from wrk output")
 
 # ========== BASELINE ==========
