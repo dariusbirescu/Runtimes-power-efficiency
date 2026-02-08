@@ -7,8 +7,8 @@ TEST_DURATION = 10
 SAMPLE_INTERVAL = 0.2
 COOLDOWN_BETWEEN_ENDPOINTS = 5  # Seconds to wait between endpoint tests
 
-WRK_THREADS = 4
-WRK_CONN = 50
+WRK_THREADS = 2
+WRK_CONN = 10
 
 # ===== MOCK INA260 SENSOR DATA =====
 # Baseline power: simulating idle Raspberry Pi
@@ -39,8 +39,10 @@ SERVERS = {
 ENDPOINTS = ["/cpu", "/memory", "/io", "/mixed"]
 # =========================================
 
+# Create results directory structure
+os.makedirs("results", exist_ok=True)
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-results_dir = f"results_mocked_{timestamp}"
+results_dir = os.path.join("results", f"mocked_{timestamp}")
 os.makedirs(results_dir, exist_ok=True)
 
 def mock_sample_power(csv_file, duration, is_baseline=True):
