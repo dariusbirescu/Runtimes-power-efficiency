@@ -201,7 +201,7 @@ for server_name, server_config in SERVERS.items():
         csv_writer.writerow(["timestamp", "voltage_V", "current_A", "power_W"])
         
         # Start ab test
-        ab_cmd = ["ab", "-n", str(request_count), "-c", str(AB_CONCURRENCY), url]
+        ab_cmd = ["ab", "-n", str(request_count), "-c", str(AB_CONCURRENCY), "-s", "60", url]
         
         print(f"📊 Measuring power while ab runs {request_count} requests...")
         

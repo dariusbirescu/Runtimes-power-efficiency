@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 public class TestController {
@@ -36,17 +37,18 @@ public class TestController {
         return list.size();
     }
 
-    // 3️⃣ I/O-bound
+    // 3️⃣ I/O-bound (async to match Node.js architecture)
     @GetMapping("/io")
-    public String io() {
-        try {
-            Files.readString(Path.of("testfile.txt"));
-            return "IO done";
-        } catch (Exception e) {
-            System.err.println("IO endpoint error: " + e.getMessage());
-            e.printStackTrace();
-            return "Error: " + e.getMessage();
-        }
+    public CompletableFuture<String> io() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Files.readString(Path.of("testfile.txt"));
+                return "IO done";
+            } catch (Exception e) {
+                System.err.println("IO endpoint error: " + e.getMessage());
+                return "Error: " + e.getMessage();
+            }
+        });
     }
 
     // 4️⃣ Mixed (reduced for Raspberry Pi)
