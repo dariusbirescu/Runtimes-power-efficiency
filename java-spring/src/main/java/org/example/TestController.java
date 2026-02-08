@@ -1,8 +1,6 @@
 package org.example;
 
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.file.Files;
@@ -10,7 +8,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 public class TestController {
@@ -49,9 +46,9 @@ public class TestController {
     }
 
     // 4️⃣ Mixed (reduced for Raspberry Pi)
-    @PostMapping("/mixed")
-    public int mixed(@RequestBody Map<String, Object> body) {
-        int sum = body.toString().chars().sum();
+    @GetMapping("/mixed")
+    public int mixed() {
+        int sum = "test".chars().sum();
         List<Integer> list = new ArrayList<>();
         for (int i = 0; i < 5_000; i++) list.add(i);  // Reduced from 25K to 5K
         Collections.shuffle(list);

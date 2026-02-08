@@ -39,8 +39,8 @@ app.get('/io', (req, res) => {
 });
 
 // 4️⃣ Mixed (reduced for Raspberry Pi)
-app.post('/mixed', (req, res) => {
-  const json = JSON.stringify(req.body);
+app.get('/mixed', (req, res) => {
+  const json = JSON.stringify({ test: 'data' });
   let sum = 0;
   for (const c of json) sum += c.charCodeAt(0);
 
