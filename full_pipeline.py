@@ -9,8 +9,8 @@ BASELINE_DURATION = 5
 TEST_DURATION = 15
 SAMPLE_INTERVAL = 0.2
 
-WRK_THREADS = 2
-WRK_CONN = 10
+WRK_THREADS = 1
+WRK_CONN = 5
 
 SERVERS = {
     "spring": {
@@ -30,10 +30,9 @@ SERVERS = {
 ENDPOINTS = ["/cpu", "/memory", "/io", "/mixed"]
 # =========================================
 
-# Create results directory structure
-os.makedirs("results", exist_ok=True)
+# Create results directory
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-results_dir = os.path.join("results", f"real_{timestamp}")
+results_dir = f"results_{timestamp}"
 os.makedirs(results_dir, exist_ok=True)
 
 # INA260 init

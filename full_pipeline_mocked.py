@@ -3,12 +3,12 @@ from datetime import datetime
 
 # ================= CONFIG =================
 BASELINE_DURATION = 5
-TEST_DURATION = 10
+TEST_DURATION = 15
 SAMPLE_INTERVAL = 0.2
 COOLDOWN_BETWEEN_ENDPOINTS = 5  # Seconds to wait between endpoint tests
 
-WRK_THREADS = 2
-WRK_CONN = 10
+WRK_THREADS = 1
+WRK_CONN = 5
 
 # ===== MOCK INA260 SENSOR DATA =====
 # Baseline power: simulating idle Raspberry Pi
