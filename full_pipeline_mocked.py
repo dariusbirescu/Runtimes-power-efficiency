@@ -17,7 +17,7 @@ WRK_THREADS = 4
 WRK_CONN = 50
 # =========================================
 
-# ===== MOCK DATA CONFIG =====
+# ===== MOCK INA260 SENSOR DATA =====
 # Baseline power: simulating idle system power consumption
 BASELINE_VOLTAGE = 12.0
 BASELINE_CURRENT_MIN = 0.8  # Amperes
@@ -31,18 +31,6 @@ TEST_CURRENT_MIN = 2.5   # Amperes
 TEST_CURRENT_MAX = 3.2
 TEST_POWER_MIN = 30.0    # Watts
 TEST_POWER_MAX = 38.4
-
-# Mock wrk results
-MOCK_REQUESTS = 25000
-MOCK_WRK_OUTPUT = f"""Running {DURATION}s test @ http://localhost:8080/cpu
-  {WRK_THREADS} threads and {WRK_CONN} connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency    12.25ms    5.83ms  85.32ms   75.23%
-    Req/Sec   105.23    25.18   180.00     68.15%
-  {MOCK_REQUESTS} requests in {DURATION}.02s, 3.45MB read
-Requests/sec: {MOCK_REQUESTS//DURATION:.2f}
-Transfer/sec: 58.92KB
-"""
 # ============================
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -99,23 +87,33 @@ def parse_wrk(file):
     return int(re.search(r"(\d+)\s+requests in", txt).group(1))
 
 # ========== BASELINE ==========
-print("Running mocked baseline...")
+print("Running baseline with mocked sensor...")
 mock_sample_power(BASELINE_CSV, DURATION, is_baseline=True)
 
-# ========== MOCK SERVER & WRK ==========
-print("Simulating server startup and warmup...")
-time.sleep(1)  # Simulated warmup
+# ========== START SERVER ==========
+print("Starting server...")
+server_cmd = SPRING_CMD if SERVER_TYPE == "spring" else NODE_CMD
+server_cwd = "java-spring" if SERVER_TYPE == "spring" else "nodejs"
+server = subprocess.Popen(server_cmd, cwd=server_cwd)
+time.sleep(10)  # warmup
 
-print("Running mocked test...")
-# Write mock wrk output
-with open(WRK_OUT, "w") as f:
-    f.write(MOCK_WRK_OUTPUT)
+url = (SPRING_URL if SERVER_TYPE == "spring" else NODE_URL) + ENDPOINT
+wrk_cmd = [
+    "wrk",
+    f"-t{WRK_THREADS}",
+    f"-c{WRK_CONN}",
+    f"-d{DURATION}s",
+    url
+]
 
-# Generate test power data
+# ========== TEST ==========
+print("Running test with mocked sensor...")
+wrk = subprocess.Popen(wrk_cmd, stdout=open(WRK_OUT, "w"))
 mock_sample_power(TEST_CSV, DURATION, is_baseline=False)
 
-print("Simulating server shutdown...")
-time.sleep(0.5)
+wrk.wait()
+server.terminate()
+print("Server stopped.")
 
 # ========== ANALYSIS ==========
 baseline_energy, baseline_dur = compute_energy(BASELINE_CSV)
