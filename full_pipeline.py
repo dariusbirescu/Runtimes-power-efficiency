@@ -6,7 +6,7 @@ from adafruit_ina260 import INA260
 
 # ================= CONFIG =================
 BASELINE_DURATION = 10
-TEST_DURATION = 60
+TEST_DURATION = 20
 SAMPLE_INTERVAL = 0.2
 
 WRK_THREADS = 4

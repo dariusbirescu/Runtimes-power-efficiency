@@ -1,26 +1,24 @@
-import time, csv, subprocess, re, os, random, shutil, sys
+import time, csv, subprocess, re, os
 from datetime import datetime
 
 # ================= CONFIG =================
 BASELINE_DURATION = 10
-TEST_DURATION = 60
+TEST_DURATION = 20
 SAMPLE_INTERVAL = 0.2
 
 WRK_THREADS = 4
 WRK_CONN = 50
 
 # ===== MOCK INA260 SENSOR DATA =====
-BASELINE_VOLTAGE = 12.0
-BASELINE_CURRENT_MIN = 0.8
-BASELINE_CURRENT_MAX = 1.0
-BASELINE_POWER_MIN = 9.6
-BASELINE_POWER_MAX = 12.0
+# Baseline power: simulating idle Raspberry Pi
+BASELINE_VOLTAGE = 5.1        # Typical USB-C voltage
+BASELINE_CURRENT = 0.6        # Amperes (idle)
+BASELINE_POWER = 3.06         # Watts (5.1V × 0.6A)
 
-TEST_VOLTAGE = 12.0
-TEST_CURRENT_MIN = 2.5
-TEST_CURRENT_MAX = 3.2
-TEST_POWER_MIN = 30.0
-TEST_POWER_MAX = 38.4
+# Test power: simulating Raspberry Pi under load
+TEST_VOLTAGE = 5.0            # Slight voltage drop under load
+TEST_CURRENT = 1.8            # Amperes (under load)
+TEST_POWER = 9.0              # Watts (5.0V × 1.8A)
 
 SERVERS = {
     "spring": {
@@ -51,26 +49,19 @@ def mock_sample_power(csv_file, duration, is_baseline=True):
         w.writerow(["timestamp", "voltage_V", "current_A", "power_W"])
         start = time.time()
         
+        # Use realistic fixed values based on typical Raspberry Pi consumption
         if is_baseline:
             voltage = BASELINE_VOLTAGE
-            current_min, current_max = BASELINE_CURRENT_MIN, BASELINE_CURRENT_MAX
-            power_min, power_max = BASELINE_POWER_MIN, BASELINE_POWER_MAX
+            current = BASELINE_CURRENT
+            power = BASELINE_POWER
         else:
             voltage = TEST_VOLTAGE
-            current_min, current_max = TEST_CURRENT_MIN, TEST_CURRENT_MAX
-            power_min, power_max = TEST_POWER_MIN, TEST_POWER_MAX
+            current = TEST_CURRENT
+            power = TEST_POWER
         
         while time.time() - start < duration:
             ts = time.time()
-            current = random.uniform(current_min, current_max)
-            power = random.uniform(power_min, power_max)
-            
-            w.writerow([
-                ts,
-                voltage + random.uniform(-0.1, 0.1),
-                current,
-                power
-            ])
+            w.writerow([ts, voltage, current, power])
             time.sleep(SAMPLE_INTERVAL)
 
 def compute_energy(csv_file):
@@ -89,28 +80,7 @@ def parse_wrk(file):
     match = re.search(r"(\d+)\s+requests in", txt)
     if match:
         return int(match.group(1))
-    match = re.search(r"\s+(\d+)\s+requests in", txt)
-    if match:
-        return int(match.group(1))
     raise ValueError(f"Could not parse request count from wrk output")
-
-def run_load_test_with_curl(url, duration):
-    """Fallback load test using curl when wrk is not available"""
-    start = time.time()
-    count = 0
-    while time.time() - start < duration:
-        try:
-            subprocess.run(["curl", "-s", "-o", "/dev/null", url], 
-                         timeout=5, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            count += 1
-        except:
-            pass
-    return count
-
-# Check if wrk is available
-has_wrk = shutil.which("wrk") is not None
-if not has_wrk:
-    print("⚠️  wrk not found, will use curl fallback (slower)\n")
 
 # ========== BASELINE ==========
 print("=" * 60)
@@ -158,28 +128,16 @@ for server_name, server_config in SERVERS.items():
         print(f"🔥 Running load test: {url}")
         print(f"📊 Measuring power for {TEST_DURATION}s (mocked)...")
         
-        if has_wrk:
-            wrk_cmd = [
-                "wrk",
-                f"-t{WRK_THREADS}",
-                f"-c{WRK_CONN}",
-                f"-d{TEST_DURATION}s",
-                url
-            ]
-            wrk = subprocess.Popen(wrk_cmd, stdout=open(wrk_out, "w"), stderr=subprocess.DEVNULL)
-            mock_sample_power(test_csv, TEST_DURATION, is_baseline=False)
-            wrk.wait()
-        else:
-            # Curl fallback
-            with open(wrk_out, "w") as f:
-                f.write(f"Running {TEST_DURATION}s test @ {url}\n")
-                f.write(f"  Fallback mode using curl\n")
-            
-            request_count = run_load_test_with_curl(url, TEST_DURATION)
-            
-            with open(wrk_out, "a") as f:
-                f.write(f"  {request_count} requests in {TEST_DURATION}.00s\n")
-                f.write(f"Requests/sec: {request_count/TEST_DURATION:.2f}\n")
+        wrk_cmd = [
+            "wrk",
+            f"-t{WRK_THREADS}",
+            f"-c{WRK_CONN}",
+            f"-d{TEST_DURATION}s",
+            url
+        ]
+        wrk = subprocess.Popen(wrk_cmd, stdout=open(wrk_out, "w"), stderr=subprocess.DEVNULL)
+        mock_sample_power(test_csv, TEST_DURATION, is_baseline=False)
+        wrk.wait()
         
         print("🛑 Stopping server...")
         server.terminate()
