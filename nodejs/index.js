@@ -1,11 +1,11 @@
-const express = require('express');
+import express from 'express';
 const app = express();
 app.use(express.json());
 
-// 1️⃣ CPU-bound
+// 1️⃣ CPU-bound (reduced for Raspberry Pi)
 app.get('/cpu', (req, res) => {
   let count = 0;
-  for (let i = 2; i < 2_000_000; i++) {
+  for (let i = 2; i < 500_000; i++) {  // Reduced from 2M to 500K
     let prime = true;
     for (let j = 2; j * j <= i; j++) {
       if (i % j === 0) { prime = false; break; }
@@ -15,11 +15,11 @@ app.get('/cpu', (req, res) => {
   res.send({ count });
 });
 
-// 2️⃣ Memory-bound
+// 2️⃣ Memory-bound (reduced for Raspberry Pi)
 app.get('/memory', (req, res) => {
   const arr = [];
-  for (let i = 0; i < 50; i++) {
-    arr.push(Buffer.alloc(1_000_000)); // ~50MB
+  for (let i = 0; i < 25; i++) {  // Reduced from 50 to 25
+    arr.push(Buffer.alloc(1_000_000)); // ~25MB
   }
   res.send({ size: arr.length });
 });
@@ -38,13 +38,13 @@ app.get('/io', (req, res) => {
   readNext();
 });
 
-// 4️⃣ Mixed
+// 4️⃣ Mixed (reduced for Raspberry Pi)
 app.post('/mixed', (req, res) => {
   const json = JSON.stringify(req.body);
   let sum = 0;
   for (const c of json) sum += c.charCodeAt(0);
 
-  const arr = Array.from({ length: 100_000 }, (_, i) => i);
+  const arr = Array.from({ length: 25_000 }, (_, i) => i);  // Reduced from 100K to 25K
   arr.sort(() => Math.random() - 0.5);
 
   res.send({ result: sum + arr[0] });

@@ -15,11 +15,11 @@ import java.util.Map;
 @RestController
 public class TestController {
 
-    // 1️⃣ CPU-bound
+    // 1️⃣ CPU-bound (reduced for Raspberry Pi)
     @GetMapping("/cpu")
     public long cpu() {
         long count = 0;
-        for (long i = 2; i < 2_000_000; i++) {
+        for (long i = 2; i < 500_000; i++) {  // Reduced from 2M to 500K
             boolean prime = true;
             for (long j = 2; j * j <= i; j++) {
                 if (i % j == 0) { prime = false; break; }
@@ -29,12 +29,12 @@ public class TestController {
         return count;
     }
 
-    // 2️⃣ Memory-bound
+    // 2️⃣ Memory-bound (reduced for Raspberry Pi)
     @GetMapping("/memory")
     public int memory() {
         List<byte[]> list = new ArrayList<>();
-        for (int i = 0; i < 50; i++) {
-            list.add(new byte[1_000_000]); // ~50MB total
+        for (int i = 0; i < 25; i++) {  // Reduced from 50 to 25
+            list.add(new byte[1_000_000]); // ~25MB total
         }
         return list.size();
     }
@@ -48,12 +48,12 @@ public class TestController {
         return "IO done";
     }
 
-    // 4️⃣ Mixed
+    // 4️⃣ Mixed (reduced for Raspberry Pi)
     @PostMapping("/mixed")
     public int mixed(@RequestBody Map<String, Object> body) {
         int sum = body.toString().chars().sum();
         List<Integer> list = new ArrayList<>();
-        for (int i = 0; i < 100_000; i++) list.add(i);
+        for (int i = 0; i < 25_000; i++) list.add(i);  // Reduced from 100K to 25K
         Collections.shuffle(list);
         return sum + list.get(0);
     }
