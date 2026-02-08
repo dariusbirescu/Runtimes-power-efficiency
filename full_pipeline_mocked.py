@@ -4,6 +4,7 @@ from datetime import datetime
 # ================= CONFIG =================
 SERVER_TYPE = "spring"   # spring | node
 ENDPOINT = "/cpu"
+BASELINE_DURATION = 10
 DURATION = 60
 SAMPLE_INTERVAL = 0.2
 
@@ -135,7 +136,7 @@ if issues:
 
 # ========== BASELINE ==========
 print("Running baseline with mocked sensor...")
-mock_sample_power(BASELINE_CSV, DURATION, is_baseline=True)
+mock_sample_power(BASELINE_CSV, BASELINE_DURATION, is_baseline=True)
 
 # ========== START SERVER ==========
 print("Starting server...")

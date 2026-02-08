@@ -7,6 +7,7 @@ from adafruit_ina260 import INA260
 # ================= CONFIG =================
 SERVER_TYPE = "spring"   # spring | node
 ENDPOINT = "/cpu"
+BASELINE_DURATION = 10
 DURATION = 60
 SAMPLE_INTERVAL = 0.2
 
@@ -61,7 +62,7 @@ def parse_wrk(file):
 
 # ========== BASELINE ==========
 print("Running baseline...")
-sample_power(BASELINE_CSV, DURATION)
+sample_power(BASELINE_CSV, BASELINE_DURATION)
 
 # ========== START SERVER ==========
 print("Starting server...")
