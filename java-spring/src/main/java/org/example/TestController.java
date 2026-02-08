@@ -39,9 +39,8 @@ public class TestController {
     // 3️⃣ I/O-bound
     @GetMapping("/io")
     public String io() throws Exception {
-        for (int i = 0; i < 10; i++) {
-            Files.readString(Path.of("testfile.txt"));
-        }
+        // Reduced to single read to avoid file locking issues with concurrent requests
+        Files.readString(Path.of("testfile.txt"));
         return "IO done";
     }
 

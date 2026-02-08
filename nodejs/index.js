@@ -26,16 +26,11 @@ app.get('/memory', (req, res) => {
 
 // 3️⃣ I/O-bound
 app.get('/io', (req, res) => {
-  let count = 0;
-  const readNext = () => {
-    if (count >= 10) return res.send('IO done');
-    require('fs').readFile('./testfile.txt', 'utf8', (err) => {
-      if (err) return res.status(500).send('Error');
-      count++;
-      readNext();
-    });
-  };
-  readNext();
+  // Reduced to single read to match Java endpoint
+  require('fs').readFile('./testfile.txt', 'utf8', (err) => {
+    if (err) return res.status(500).send('Error');
+    res.send('IO done');
+  });
 });
 
 // 4️⃣ Mixed (reduced for Raspberry Pi)
