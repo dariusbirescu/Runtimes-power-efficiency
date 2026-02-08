@@ -6,7 +6,7 @@ from adafruit_ina260 import INA260
 
 # ================= CONFIG =================
 BASELINE_DURATION = 5
-TEST_DURATION = 10
+TEST_DURATION = 15
 SAMPLE_INTERVAL = 0.2
 
 WRK_THREADS = 4
@@ -180,13 +180,33 @@ for server_name, server_config in SERVERS.items():
                 print(f"⚠️  wrk failed with error: {stderr.decode()}")
                 print(f"   Check if server is responding at {url}")
                 server.terminate()
-                server.wait()
+                try:
+                    server.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    server.kill()
+                    server.wait()
                 continue
+        
+        # Check wrk output file size
+        if os.path.getsize(wrk_out) == 0:
+            print(f"⚠️  wrk output is empty - server may not be responding")
+            server.terminate()
+            try:
+                server.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                server.kill()
+                server.wait()
+            continue
         
         # Stop server
         print("🛑 Stopping server...")
         server.terminate()
-        server.wait()
+        try:
+            server.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            print("⚠️  Server didn't stop gracefully, force killing...")
+            server.kill()
+            server.wait()
         
         # Calculate results
         test_energy, test_dur = compute_energy(test_csv)
