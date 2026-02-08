@@ -1,4 +1,4 @@
-import time, csv, subprocess, re, os, random
+import time, csv, subprocess, re, os, random, shutil, sys
 from datetime import datetime
 
 # ================= CONFIG =================
@@ -86,6 +86,53 @@ def parse_wrk(file):
         txt = f.read()
     return int(re.search(r"(\d+)\s+requests in", txt).group(1))
 
+def check_prerequisites():
+    """Check and provide guidance on missing prerequisites"""
+    issues = []
+    
+    # Check wrk
+    has_wrk = shutil.which("wrk") is not None
+    if not has_wrk:
+        issues.append("wrk is not installed. Install with: brew install wrk (macOS) or apt install wrk (Linux)")
+    
+    # Check server JAR/files
+    if SERVER_TYPE == "spring":
+        jar_path = os.path.join("java-spring", "target", "energy-test-1.0.0.jar")
+        if not os.path.exists(jar_path):
+            issues.append(f"Spring Boot JAR not found. Build it with: cd java-spring && mvn clean package")
+    else:
+        index_path = os.path.join("nodejs", "index.js")
+        if not os.path.exists(index_path):
+            issues.append(f"Node.js server file not found at {index_path}")
+    
+    return issues, has_wrk
+
+def run_load_test_with_curl(url, duration):
+    """Fallback load test using curl when wrk is not available"""
+    print(f"  Using curl for load testing (install wrk for better results)...")
+    start = time.time()
+    count = 0
+    while time.time() - start < duration:
+        try:
+            subprocess.run(["curl", "-s", "-o", "/dev/null", url], 
+                         timeout=5, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            count += 1
+        except:
+            pass
+    return count
+
+# ========== CHECK PREREQUISITES ==========
+issues, has_wrk = check_prerequisites()
+if issues:
+    print("⚠️  Prerequisites missing:")
+    for issue in issues:
+        print(f"  ❌ {issue}")
+    print("\n💡 Run this script after fixing the above issues, or it will use fallback methods.\n")
+    if not has_wrk:
+        response = input("Continue with curl fallback? (y/n): ")
+        if response.lower() != 'y':
+            sys.exit(1)
+
 # ========== BASELINE ==========
 print("Running baseline with mocked sensor...")
 mock_sample_power(BASELINE_CSV, DURATION, is_baseline=True)
@@ -94,26 +141,56 @@ mock_sample_power(BASELINE_CSV, DURATION, is_baseline=True)
 print("Starting server...")
 server_cmd = SPRING_CMD if SERVER_TYPE == "spring" else NODE_CMD
 server_cwd = "java-spring" if SERVER_TYPE == "spring" else "nodejs"
-server = subprocess.Popen(server_cmd, cwd=server_cwd)
-time.sleep(10)  # warmup
+try:
+    server = subprocess.Popen(server_cmd, cwd=server_cwd,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    time.sleep(10)  # warmup
+    
+    # Check if server started successfully
+    if server.poll() is not None:
+        _, stderr = server.communicate()
+        print(f"❌ Server failed to start: {stderr.decode()}")
+        sys.exit(1)
+    
+    print("✓ Server started successfully")
+except FileNotFoundError as e:
+    print(f"❌ Failed to start server: {e}")
+    sys.exit(1)
 
 url = (SPRING_URL if SERVER_TYPE == "spring" else NODE_URL) + ENDPOINT
-wrk_cmd = [
-    "wrk",
-    f"-t{WRK_THREADS}",
-    f"-c{WRK_CONN}",
-    f"-d{DURATION}s",
-    url
-]
 
 # ========== TEST ==========
 print("Running test with mocked sensor...")
-wrk = subprocess.Popen(wrk_cmd, stdout=open(WRK_OUT, "w"))
-mock_sample_power(TEST_CSV, DURATION, is_baseline=False)
 
-wrk.wait()
+if has_wrk:
+    # Use wrk for load testing
+    wrk_cmd = [
+        "wrk",
+        f"-t{WRK_THREADS}",
+        f"-c{WRK_CONN}",
+        f"-d{DURATION}s",
+        url
+    ]
+    wrk = subprocess.Popen(wrk_cmd, stdout=open(WRK_OUT, "w"), stderr=subprocess.DEVNULL)
+    mock_sample_power(TEST_CSV, DURATION, is_baseline=False)
+    wrk.wait()
+else:
+    # Fallback to curl-based load testing
+    request_count = 0
+    with open(WRK_OUT, "w") as f:
+        f.write(f"Running {DURATION}s test @ {url}\n")
+        f.write(f"  Fallback mode using curl\n")
+        
+    request_count = run_load_test_with_curl(url, DURATION)
+    
+    # Write mock wrk-style output
+    with open(WRK_OUT, "a") as f:
+        f.write(f"  {request_count} requests in {DURATION}.00s\n")
+        f.write(f"Requests/sec: {request_count/DURATION:.2f}\n")
+
 server.terminate()
-print("Server stopped.")
+server.wait()
+print("✓ Server stopped.")
 
 # ========== ANALYSIS ==========
 baseline_energy, baseline_dur = compute_energy(BASELINE_CSV)
