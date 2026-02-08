@@ -38,10 +38,15 @@ public class TestController {
 
     // 3️⃣ I/O-bound
     @GetMapping("/io")
-    public String io() throws Exception {
-        // Reduced to single read to avoid file locking issues with concurrent requests
-        Files.readString(Path.of("testfile.txt"));
-        return "IO done";
+    public String io() {
+        try {
+            Files.readString(Path.of("testfile.txt"));
+            return "IO done";
+        } catch (Exception e) {
+            System.err.println("IO endpoint error: " + e.getMessage());
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
     }
 
     // 4️⃣ Mixed (reduced for Raspberry Pi)
