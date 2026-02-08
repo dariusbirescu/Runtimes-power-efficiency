@@ -5,7 +5,7 @@ app.use(express.json());
 // 1️⃣ CPU-bound (reduced for Raspberry Pi)
 app.get('/cpu', (req, res) => {
   let count = 0;
-  for (let i = 2; i < 500_000; i++) {  // Reduced from 2M to 500K
+  for (let i = 2; i < 100_000; i++) {  // Reduced from 500K to 100K
     let prime = true;
     for (let j = 2; j * j <= i; j++) {
       if (i % j === 0) { prime = false; break; }
@@ -44,7 +44,7 @@ app.post('/mixed', (req, res) => {
   let sum = 0;
   for (const c of json) sum += c.charCodeAt(0);
 
-  const arr = Array.from({ length: 25_000 }, (_, i) => i);  // Reduced from 100K to 25K
+  const arr = Array.from({ length: 5_000 }, (_, i) => i);  // Reduced from 25K to 5K
   arr.sort(() => Math.random() - 0.5);
 
   res.send({ result: sum + arr[0] });

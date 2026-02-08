@@ -19,7 +19,7 @@ public class TestController {
     @GetMapping("/cpu")
     public long cpu() {
         long count = 0;
-        for (long i = 2; i < 500_000; i++) {  // Reduced from 2M to 500K
+        for (long i = 2; i < 100_000; i++) {  // Reduced from 500K to 100K
             boolean prime = true;
             for (long j = 2; j * j <= i; j++) {
                 if (i % j == 0) { prime = false; break; }
@@ -53,7 +53,7 @@ public class TestController {
     public int mixed(@RequestBody Map<String, Object> body) {
         int sum = body.toString().chars().sum();
         List<Integer> list = new ArrayList<>();
-        for (int i = 0; i < 25_000; i++) list.add(i);  // Reduced from 100K to 25K
+        for (int i = 0; i < 5_000; i++) list.add(i);  // Reduced from 25K to 5K
         Collections.shuffle(list);
         return sum + list.get(0);
     }
