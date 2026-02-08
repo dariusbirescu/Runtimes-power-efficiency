@@ -2,8 +2,8 @@ import time, csv, subprocess, re, os
 from datetime import datetime
 
 # ================= CONFIG =================
-BASELINE_DURATION = 10
-TEST_DURATION = 20
+BASELINE_DURATION = 5
+TEST_DURATION = 10
 SAMPLE_INTERVAL = 0.2
 
 WRK_THREADS = 4
@@ -194,10 +194,17 @@ for server_name, server_config in SERVERS.items():
         server.terminate()
         server.wait()
         
+        # Calculate results
         test_energy, test_dur = compute_energy(test_csv)
         baseline_scaled = baseline_avg_power * test_dur
         corrected_energy = test_energy - baseline_scaled
         requests = parse_wrk(wrk_out)
+        
+        # Skip if no requests were completed
+        if requests == 0:
+            print(f"⚠️  No requests completed - skipping this test\n")
+            continue
+        
         j_per_req = corrected_energy / requests
         
         result = {
