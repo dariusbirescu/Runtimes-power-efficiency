@@ -111,14 +111,22 @@ for server_name, server_config in SERVERS.items():
         server = subprocess.Popen(
             server_config["cmd"],
             cwd=server_config["cwd"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
         )
         
         # Warmup
         warmup_time = server_config["warmup"]
         print(f"⏳ Warming up for {warmup_time}s...")
         time.sleep(warmup_time)
+        
+        # Check if server is still running
+        if server.poll() is not None:
+            stdout, stderr = server.communicate()
+            print(f"✗ Server crashed during warmup!")
+            print(f"   stdout: {stdout.decode()[:200]}")
+            print(f"   stderr: {stderr.decode()[:200]}")
+            continue
         
         # Run wrk load test + power measurement
         url = server_config["url"] + endpoint
@@ -133,9 +141,19 @@ for server_name, server_config in SERVERS.items():
             url
         ]
         
-        wrk = subprocess.Popen(wrk_cmd, stdout=open(wrk_out, "w"), stderr=subprocess.DEVNULL)
-        sample_power(test_csv, TEST_DURATION)
-        wrk.wait()
+        with open(wrk_out, "w") as wrk_file:
+            wrk = subprocess.Popen(wrk_cmd, stdout=wrk_file, stderr=subprocess.PIPE)
+            sample_power(test_csv, TEST_DURATION)
+            wrk.wait()
+            
+            # Check if wrk failed
+            if wrk.returncode != 0:
+                _, stderr = wrk.communicate()
+                print(f"⚠️  wrk failed with error: {stderr.decode()}")
+                print(f"   Check if server is responding at {url}")
+                server.terminate()
+                server.wait()
+                continue
         
         # Stop server
         print("🛑 Stopping server...")

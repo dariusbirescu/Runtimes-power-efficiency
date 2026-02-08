@@ -118,16 +118,24 @@ for server_name, server_config in SERVERS.items():
             server = subprocess.Popen(
                 server_config["cmd"],
                 cwd=server_config["cwd"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
             )
-        except FileNotFoundError:
-            print(f"✗ Failed to start {server_name} server")
+        except FileNotFoundError as e:
+            print(f"✗ Failed to start {server_name} server: {e}")
             continue
         
         warmup_time = server_config["warmup"]
         print(f"⏳ Warming up for {warmup_time}s...")
         time.sleep(warmup_time)
+        
+        # Check if server is still running
+        if server.poll() is not None:
+            stdout, stderr = server.communicate()
+            print(f"✗ Server crashed during warmup!")
+            print(f"   stdout: {stdout.decode()[:200]}")
+            print(f"   stderr: {stderr.decode()[:200]}")
+            continue
         
         url = server_config["url"] + endpoint
         print(f"🔥 Running load test: {url}")
@@ -140,9 +148,20 @@ for server_name, server_config in SERVERS.items():
             f"-d{TEST_DURATION}s",
             url
         ]
-        wrk = subprocess.Popen(wrk_cmd, stdout=open(wrk_out, "w"), stderr=subprocess.DEVNULL)
-        mock_sample_power(test_csv, TEST_DURATION, is_baseline=False)
-        wrk.wait()
+        
+        with open(wrk_out, "w") as wrk_file:
+            wrk = subprocess.Popen(wrk_cmd, stdout=wrk_file, stderr=subprocess.PIPE)
+            mock_sample_power(test_csv, TEST_DURATION, is_baseline=False)
+            wrk.wait()
+            
+            # Check if wrk failed
+            if wrk.returncode != 0:
+                _, stderr = wrk.communicate()
+                print(f"⚠️  wrk failed with error: {stderr.decode()}")
+                print(f"   Check if server is responding at {url}")
+                server.terminate()
+                server.wait()
+                continue
         
         print("🛑 Stopping server...")
         server.terminate()
