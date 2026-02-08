@@ -226,6 +226,18 @@ for server_name, server_config in SERVERS.items():
         # Check if ab failed
         if ab_proc.returncode != 0:
             print(f"⚠️  ab failed with return code {ab_proc.returncode}")
+            # Show ab stderr
+            stderr = ab_proc.stderr.read() if ab_proc.stderr else b""
+            if stderr:
+                print(f"   ab stderr: {stderr.decode()[:500]}")
+            # Show ab output file content
+            try:
+                with open(ab_out, 'r') as f:
+                    content = f.read()
+                    if content:
+                        print(f"   ab output: {content[:500]}")
+            except:
+                pass
             if endpoint_idx < len(ENDPOINTS) - 1:
                 print(f"⏳ Cooling down for {COOLDOWN_BETWEEN_ENDPOINTS}s...")
                 time.sleep(COOLDOWN_BETWEEN_ENDPOINTS)
