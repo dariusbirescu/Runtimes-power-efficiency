@@ -137,7 +137,34 @@ for server_name, server_config in SERVERS.items():
             print(f"   stderr: {stderr.decode()[:200]}")
             continue
         
+        # Wait for server to be ready by checking if port is listening
         url = server_config["url"] + endpoint
+        print(f"⏱️  Checking if server is ready at {server_config['url']}...")
+        
+        server_ready = False
+        for attempt in range(10):
+            try:
+                result = subprocess.run(
+                    ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", server_config["url"]],
+                    capture_output=True,
+                    timeout=2
+                )
+                if result.returncode == 0 and result.stdout.decode() in ["200", "404"]:
+                    server_ready = True
+                    print(f"✓ Server is ready!")
+                    break
+            except:
+                pass
+            time.sleep(1)
+        
+        if not server_ready:
+            print(f"✗ Server did not become ready in time")
+            stdout, stderr = server.communicate() if server.poll() else (b"still running", b"")
+            print(f"   Server stdout: {stdout.decode()[:300] if stdout else 'N/A'}")
+            print(f"   Server stderr: {stderr.decode()[:300] if stderr else 'N/A'}")
+            server.terminate()
+            server.wait()
+            continue
         print(f"🔥 Running load test: {url}")
         print(f"📊 Measuring power for {TEST_DURATION}s (mocked)...")
         
