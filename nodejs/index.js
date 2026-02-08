@@ -1,4 +1,5 @@
 import express from 'express';
+import { readFile } from 'fs/promises';
 const app = express();
 app.use(express.json());
 
@@ -25,21 +26,24 @@ app.get('/memory', (req, res) => {
 });
 
 // 3️⃣ I/O-bound
-app.get('/io', (req, res) => {
-  // Reduced to single read to match Java endpoint
-  require('fs').readFile('./testfile.txt', 'utf8', (err) => {
-    if (err) return res.status(500).send('Error');
+app.get('/io', async (req, res) => {
+  try {
+    await readFile('./testfile.txt', 'utf8');
     res.send('IO done');
-  });
+  } catch (err) {
+    res.status(500).send('Error');
+  }
 });
 
 // 4️⃣ Mixed (reduced for Raspberry Pi)
 app.get('/mixed', (req, res) => {
-  const json = JSON.stringify({ test: 'data' });
+  // String operations (CPU)
+  const str = 'test data for mixed workload';
   let sum = 0;
-  for (const c of json) sum += c.charCodeAt(0);
+  for (const c of str) sum += c.charCodeAt(0);
 
-  const arr = Array.from({ length: 5_000 }, (_, i) => i);  // Reduced from 25K to 5K
+  // Array operations (CPU + Memory)
+  const arr = Array.from({ length: 5_000 }, (_, i) => i);
   arr.sort(() => Math.random() - 0.5);
 
   res.send({ result: sum + arr[0] });

@@ -54,10 +54,15 @@ public class TestController {
     // 4️⃣ Mixed (reduced for Raspberry Pi)
     @GetMapping("/mixed")
     public int mixed() {
-        int sum = "test".chars().sum();
+        // String operations (CPU)
+        String str = "test data for mixed workload";
+        int sum = str.chars().sum();
+        
+        // Array operations (CPU + Memory)
         List<Integer> list = new ArrayList<>();
-        for (int i = 0; i < 5_000; i++) list.add(i);  // Reduced from 25K to 5K
+        for (int i = 0; i < 5_000; i++) list.add(i);
         Collections.shuffle(list);
+        
         return sum + list.get(0);
     }
 }
