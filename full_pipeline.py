@@ -5,26 +5,35 @@ import board, busio
 from adafruit_ina260 import INA260
 
 # ================= CONFIG =================
-SERVER_TYPE = "spring"   # spring | node
-ENDPOINT = "/cpu"
 BASELINE_DURATION = 10
-DURATION = 60
+TEST_DURATION = 60
 SAMPLE_INTERVAL = 0.2
-
-SPRING_CMD = ["java", "-jar", "target/energy-test-1.0.0.jar"]
-NODE_CMD = ["node", "index.js"]
-
-SPRING_URL = "http://localhost:8080"
-NODE_URL = "http://localhost:3000"
 
 WRK_THREADS = 4
 WRK_CONN = 50
+
+SERVERS = {
+    "spring": {
+        "cmd": ["java", "-jar", "target/energy-test-1.0.0.jar"],
+        "cwd": "java-spring",
+        "url": "http://localhost:8080",
+        "warmup": 10
+    },
+    "node": {
+        "cmd": ["node", "index.js"],
+        "cwd": "nodejs",
+        "url": "http://localhost:3000",
+        "warmup": 5
+    }
+}
+
+ENDPOINTS = ["/cpu", "/memory", "/io", "/mixed"]
 # =========================================
 
+# Create results directory
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-BASELINE_CSV = f"baseline_{timestamp}.csv"
-TEST_CSV = f"test_{SERVER_TYPE}_{timestamp}.csv"
-WRK_OUT = f"wrk_{SERVER_TYPE}_{timestamp}.txt"
+results_dir = f"results_{timestamp}"
+os.makedirs(results_dir, exist_ok=True)
 
 # INA260 init
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -58,59 +67,134 @@ def compute_energy(csv_file):
 def parse_wrk(file):
     with open(file) as f:
         txt = f.read()
-    return int(re.search(r"(\d+)\s+requests in", txt).group(1))
+    match = re.search(r"(\d+)\s+requests in", txt)
+    if match:
+        return int(match.group(1))
+    raise ValueError(f"Could not parse request count from wrk output")
 
 # ========== BASELINE ==========
-print("Running baseline...")
-sample_power(BASELINE_CSV, BASELINE_DURATION)
-
-# ========== START SERVER ==========
-print("Starting server...")
-server_cmd = SPRING_CMD if SERVER_TYPE == "spring" else NODE_CMD
-server_cwd = "java-spring" if SERVER_TYPE == "spring" else "nodejs"
-server = subprocess.Popen(server_cmd, cwd=server_cwd)
-time.sleep(10)  # warmup
-
-url = (SPRING_URL if SERVER_TYPE == "spring" else NODE_URL) + ENDPOINT
-wrk_cmd = [
-    "wrk",
-    f"-t{WRK_THREADS}",
-    f"-c{WRK_CONN}",
-    f"-d{DURATION}s",
-    url
-]
-
-# ========== TEST ==========
-print("Running test...")
-wrk = subprocess.Popen(wrk_cmd, stdout=open(WRK_OUT, "w"))
-sample_power(TEST_CSV, DURATION)
-
-wrk.wait()
-server.terminate()
-
-# ========== ANALYSIS ==========
-baseline_energy, baseline_dur = compute_energy(BASELINE_CSV)
-test_energy, test_dur = compute_energy(TEST_CSV)
-
+print("=" * 60)
+print("RUNNING BASELINE MEASUREMENT")
+print("=" * 60)
+baseline_csv = os.path.join(results_dir, "baseline.csv")
+sample_power(baseline_csv, BASELINE_DURATION)
+baseline_energy, baseline_dur = compute_energy(baseline_csv)
 baseline_avg_power = baseline_energy / baseline_dur
-baseline_scaled = baseline_avg_power * test_dur
-corrected_energy = test_energy - baseline_scaled
+print(f"✓ Baseline complete: {baseline_avg_power:.2f}W average\n")
 
-requests = parse_wrk(WRK_OUT)
-j_per_req = corrected_energy / requests
+# Store all results
+all_results = []
 
-# ========== OUTPUT ==========
-print("\n=== FINAL RESULTS ===")
-print("Server:", SERVER_TYPE)
-print("Endpoint:", ENDPOINT)
-print("Requests:", requests)
-print(f"Corrected Energy: {corrected_energy:.2f} J")
-print(f"Energy / Request: {j_per_req:.6f} J")
+# ========== RUN ALL TESTS ==========
+test_count = 0
+total_tests = len(SERVERS) * len(ENDPOINTS)
 
-with open("results.tex", "w") as f:
-    f.write("\\begin{tabular}{lcc}\n\\hline\n")
-    f.write("Server & Energy (J) & J/request \\\\\n\\hline\n")
-    f.write(f"{SERVER_TYPE} & {corrected_energy:.2f} & {j_per_req:.6f} \\\\\n")
+for server_name, server_config in SERVERS.items():
+    for endpoint in ENDPOINTS:
+        test_count += 1
+        
+        print("=" * 60)
+        print(f"TEST {test_count}/{total_tests}: {server_name.upper()} - {endpoint}")
+        print("=" * 60)
+        
+        # File paths for this test
+        test_csv = os.path.join(results_dir, f"test_{server_name}_{endpoint[1:]}.csv")
+        wrk_out = os.path.join(results_dir, f"wrk_{server_name}_{endpoint[1:]}.txt")
+        
+        # Start server
+        print(f"▶ Starting {server_name} server...")
+        server = subprocess.Popen(
+            server_config["cmd"],
+            cwd=server_config["cwd"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        
+        # Warmup
+        warmup_time = server_config["warmup"]
+        print(f"⏳ Warming up for {warmup_time}s...")
+        time.sleep(warmup_time)
+        
+        # Run wrk load test + power measurement
+        url = server_config["url"] + endpoint
+        print(f"🔥 Running load test: {url}")
+        print(f"📊 Measuring power for {TEST_DURATION}s...")
+        
+        wrk_cmd = [
+            "wrk",
+            f"-t{WRK_THREADS}",
+            f"-c{WRK_CONN}",
+            f"-d{TEST_DURATION}s",
+            url
+        ]
+        
+        wrk = subprocess.Popen(wrk_cmd, stdout=open(wrk_out, "w"), stderr=subprocess.DEVNULL)
+        sample_power(test_csv, TEST_DURATION)
+        wrk.wait()
+        
+        # Stop server
+        print("🛑 Stopping server...")
+        server.terminate()
+        server.wait()
+        
+        # Calculate results
+        test_energy, test_dur = compute_energy(test_csv)
+        baseline_scaled = baseline_avg_power * test_dur
+        corrected_energy = test_energy - baseline_scaled
+        requests = parse_wrk(wrk_out)
+        j_per_req = corrected_energy / requests
+        
+        # Store results
+        result = {
+            "server": server_name,
+            "endpoint": endpoint,
+            "requests": requests,
+            "energy_j": corrected_energy,
+            "j_per_req": j_per_req
+        }
+        all_results.append(result)
+        
+        print(f"✓ Complete: {requests:,} requests, {corrected_energy:.2f}J, {j_per_req:.6f}J/req\n")
+        
+        # Brief pause between tests
+        if test_count < total_tests:
+            time.sleep(3)
+
+# ========== SUMMARY ==========
+print("=" * 60)
+print("ALL TESTS COMPLETE - SUMMARY")
+print("=" * 60)
+
+# Sort by energy per request
+all_results.sort(key=lambda x: x["j_per_req"])
+
+print("\n{:<10} {:<12} {:>12} {:>12} {:>15}".format(
+    "Server", "Endpoint", "Requests", "Energy (J)", "J/request"
+))
+print("-" * 65)
+for r in all_results:
+    print("{:<10} {:<12} {:>12,} {:>12.2f} {:>15.6f}".format(
+        r["server"], r["endpoint"], r["requests"], r["energy_j"], r["j_per_req"]
+    ))
+
+# Write CSV summary
+summary_csv = os.path.join(results_dir, "summary.csv")
+with open(summary_csv, "w", newline="") as f:
+    w = csv.DictWriter(f, fieldnames=["server", "endpoint", "requests", "energy_j", "j_per_req"])
+    w.writeheader()
+    w.writerows(all_results)
+
+# Write LaTeX table
+latex_file = os.path.join(results_dir, "results.tex")
+with open(latex_file, "w") as f:
+    f.write("\\begin{tabular}{llrrr}\n\\hline\n")
+    f.write("Server & Endpoint & Requests & Energy (J) & J/request \\\\\n\\hline\n")
+    for r in all_results:
+        f.write(f"{r['server']} & {r['endpoint']} & {r['requests']:,} & {r['energy_j']:.2f} & {r['j_per_req']:.6f} \\\\\n")
     f.write("\\hline\n\\end{tabular}\n")
 
-print("LaTeX table written to results.tex")
+print(f"\n📁 All results saved to: {results_dir}/")
+print(f"   - summary.csv")
+print(f"   - results.tex")
+print(f"   - Individual CSV and wrk output files")
+print("\n✅ Test suite complete!")
