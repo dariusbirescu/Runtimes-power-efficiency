@@ -9,13 +9,7 @@ results_mocked.tex
 # Java
 *.class
 *.log
-target/
-!java-spring/target/energy-test-1.0.0.jar
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
 *.jar
-!java-spring/target/energy-test-1.0.0.jar
 *.war
 *.nar
 *.ear
@@ -25,6 +19,10 @@ target/
 hs_err_pid*
 replay_pid*
 .kotlin
+
+# Java build directories (but keep the deployment JAR)
+java-spring/target/*
+!java-spring/target/energy-test-1.0.0.jar
 
 # Node.js
 node_modules/
