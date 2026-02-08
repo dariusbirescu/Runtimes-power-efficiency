@@ -1,5 +1,6 @@
 import express from 'express';
 import { readFile } from 'fs/promises';
+import { shuffle } from 'lodash-es';
 const app = express();
 app.use(express.json());
 
@@ -43,8 +44,8 @@ app.get('/mixed', (req, res) => {
   for (const c of str) sum += c.charCodeAt(0);
 
   // Array operations (CPU + Memory)
-  const arr = Array.from({ length: 5_000 }, (_, i) => i);
-  arr.sort(() => Math.random() - 0.5);
+  let arr = Array.from({ length: 5_000 }, (_, i) => i);
+  arr = shuffle(arr);  // Lodash shuffle uses Fisher-Yates, same as Java's Collections.shuffle()
 
   res.send({ result: sum + arr[0] });
 });
