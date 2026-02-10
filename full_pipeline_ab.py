@@ -1,4 +1,4 @@
-import time, csv, subprocess, re, os
+import time, csv, subprocess, re, os, sys, shutil
 from datetime import datetime
 
 import board, busio
@@ -35,15 +35,48 @@ ENDPOINTS = {
 }
 # =========================================
 
+# Optional: override INA260 I2C address via env var (e.g., "0x40" or "64")
+def _parse_addr(val: str | None):
+    if not val:
+        return None
+    try:
+        return int(val, 0)
+    except Exception:
+        print(f"⚠️  Invalid INA260_ADDR '{val}' - using default address")
+        return None
+
+INA260_ADDR_ENV = _parse_addr(os.environ.get("INA260_ADDR"))
+
+# Basic preflight to ensure required tools and I2C device exist
+def ensure_prereqs():
+    missing_cmds = [cmd for cmd in ("curl", "ab") if shutil.which(cmd) is None]
+    if missing_cmds:
+        print(f"✗ Missing required tools: {', '.join(missing_cmds)}")
+        print("  Install with: sudo apt install curl apache2-utils")
+        sys.exit(1)
+    if not os.path.exists("/dev/i2c-1"):
+        print("✗ I2C device not found at /dev/i2c-1")
+        print("  Enable I2C via 'sudo raspi-config' → Interfacing Options → I2C, then reboot.")
+        sys.exit(1)
+
 # Create results directory
 os.makedirs("results", exist_ok=True)
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 results_dir = os.path.join("results", f"ab_real_{timestamp}")
 os.makedirs(results_dir, exist_ok=True)
 
-# INA260 init
-i2c = busio.I2C(board.SCL, board.SDA)
-ina = INA260(i2c)
+# Preflight checks
+ensure_prereqs()
+
+# INA260 init (with optional address override) and quick probe
+try:
+    i2c = busio.I2C(board.SCL, board.SDA)
+    ina = INA260(i2c) if INA260_ADDR_ENV is None else INA260(i2c, address=INA260_ADDR_ENV)
+    _ = ina.voltage  # probe once to surface init issues early
+except Exception as e:
+    print(f"✗ Failed to initialize INA260 over I2C: {e}")
+    print("  Check wiring, I2C enablement, and sensor address (env INA260_ADDR).")
+    sys.exit(1)
 
 def sample_power(csv_file, duration):
     """Sample real power from INA260 sensor"""
@@ -137,6 +170,13 @@ for server_name, server_config in SERVERS.items():
     
     # Start server once for all endpoints
     print(f"▶ Starting {server_name} server...")
+    # Spring jar presence check to avoid silent failures
+    if server_name == "spring":
+        jar_path = os.path.join(server_config["cwd"], "target", "energy-test-1.0.0.jar")
+        if not os.path.exists(jar_path):
+            print(f"✗ Spring Boot JAR missing: {jar_path}")
+            print("  Rebuild or adjust path, skipping Spring tests.\n")
+            continue
     try:
         server = subprocess.Popen(
             server_config["cmd"],
