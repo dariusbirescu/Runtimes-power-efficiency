@@ -19,18 +19,17 @@ except ModuleNotFoundError:
     sys.exit(1)
 
 # ================= CONFIG =================
-# Baseline: 60s captures stable idle power with statistical significance
-# Reduces impact of transient system processes and thermal variations
-BASELINE_DURATION = 60
+# Baseline: 20s provides stable idle power measurement
+# Sufficient for averaging transient system processes
+BASELINE_DURATION = 20
 
-# 5 Hz sampling rate provides good temporal resolution without excessive data
+# 5 Hz sampling rate provides good temporal resolution
 SAMPLE_INTERVAL = 0.2
 
-# 30s cooldown allows CPU/memory to return to idle state and thermal stabilization
-# Critical for independent measurements and avoiding carryover effects
-COOLDOWN_BETWEEN_ENDPOINTS = 30
+# 10s cooldown allows system to return to idle between tests
+COOLDOWN_BETWEEN_ENDPOINTS = 10
 
-# Moderate concurrency appropriate for Raspberry Pi (avoids resource saturation)
+# Moderate concurrency appropriate for Raspberry Pi
 AB_CONCURRENCY = 5
 
 SERVERS = {
@@ -38,24 +37,23 @@ SERVERS = {
         "cmd": ["java", "-jar", "target/energy-test-1.0.0.jar"],
         "cwd": "java-spring",
         "url": "http://localhost:8080",
-        "warmup": 15  # JVM warmup for JIT compilation
+        "warmup": 10  # JVM warmup for JIT compilation
     },
     "node": {
         "cmd": ["node", "index.js"],
         "cwd": "nodejs",
         "url": "http://localhost:3000",
-        "warmup": 10  # V8 engine stabilization
+        "warmup": 8  # V8 engine stabilization
     }
 }
 
-# Request counts provide statistically significant samples (n>1000)
-# Balanced for ~30-60s test duration per endpoint for stable energy measurements
-# Higher counts for faster endpoints, lower for I/O-bound operations
+# Request counts provide sufficient samples (n>300) for each endpoint
+# Balanced for ~15-25s test duration - enough for stable energy measurements
 ENDPOINTS = {
-    "/cpu": 2000,      # CPU-intensive: ~40-60s @ ~40 req/s
-    "/memory": 5000,   # Memory ops: ~40-60s @ ~100 req/s  
-    "/io": 800,        # I/O-bound: ~40-60s @ ~15 req/s
-    "/mixed": 3000     # Balanced: ~40-60s @ ~60 req/s
+    "/cpu": 800,       # CPU-intensive: ~15-20s @ ~40-50 req/s
+    "/memory": 2000,   # Memory ops: ~15-20s @ ~100-120 req/s  
+    "/io": 300,        # I/O-bound: ~15-20s @ ~15-20 req/s
+    "/mixed": 1000     # Balanced: ~15-20s @ ~50-60 req/s
 }
 # =========================================
 
