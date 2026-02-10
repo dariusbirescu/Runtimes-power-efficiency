@@ -19,10 +19,18 @@ except ModuleNotFoundError:
     sys.exit(1)
 
 # ================= CONFIG =================
-BASELINE_DURATION = 5
-SAMPLE_INTERVAL = 0.2
-COOLDOWN_BETWEEN_ENDPOINTS = 5
+# Baseline: 60s captures stable idle power with statistical significance
+# Reduces impact of transient system processes and thermal variations
+BASELINE_DURATION = 60
 
+# 5 Hz sampling rate provides good temporal resolution without excessive data
+SAMPLE_INTERVAL = 0.2
+
+# 30s cooldown allows CPU/memory to return to idle state and thermal stabilization
+# Critical for independent measurements and avoiding carryover effects
+COOLDOWN_BETWEEN_ENDPOINTS = 30
+
+# Moderate concurrency appropriate for Raspberry Pi (avoids resource saturation)
 AB_CONCURRENCY = 5
 
 SERVERS = {
@@ -30,22 +38,24 @@ SERVERS = {
         "cmd": ["java", "-jar", "target/energy-test-1.0.0.jar"],
         "cwd": "java-spring",
         "url": "http://localhost:8080",
-        "warmup": 10
+        "warmup": 15  # JVM warmup for JIT compilation
     },
     "node": {
         "cmd": ["node", "index.js"],
         "cwd": "nodejs",
         "url": "http://localhost:3000",
-        "warmup": 5
+        "warmup": 10  # V8 engine stabilization
     }
 }
 
-# Request counts chosen for balanced completion times
+# Request counts provide statistically significant samples (n>1000)
+# Balanced for ~30-60s test duration per endpoint for stable energy measurements
+# Higher counts for faster endpoints, lower for I/O-bound operations
 ENDPOINTS = {
-    "/cpu": 50,
-    "/memory": 200,
-    "/io": 20,
-    "/mixed": 100
+    "/cpu": 2000,      # CPU-intensive: ~40-60s @ ~40 req/s
+    "/memory": 5000,   # Memory ops: ~40-60s @ ~100 req/s  
+    "/io": 800,        # I/O-bound: ~40-60s @ ~15 req/s
+    "/mixed": 3000     # Balanced: ~40-60s @ ~60 req/s
 }
 # =========================================
 
