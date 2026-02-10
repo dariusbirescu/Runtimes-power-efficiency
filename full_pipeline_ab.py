@@ -6,14 +6,16 @@ try:
 except ModuleNotFoundError:
     print("✗ Missing 'board'/'busio' modules (Adafruit Blinka not installed)")
     print("  Fix with: sudo apt update && sudo apt install python3-rpi.gpio python3-dev i2c-tools")
-    print("             pip3 install adafruit-blinka")
+    print("             pip3 install --break-system-packages adafruit-blinka")
+    print("  Or use venv: python3 -m venv venv && source venv/bin/activate && pip install adafruit-blinka")
     sys.exit(1)
 
 try:
     from adafruit_ina260 import INA260
 except ModuleNotFoundError:
     print("✗ Missing 'adafruit_ina260' module")
-    print("  Fix with: pip3 install adafruit-circuitpython-ina260")
+    print("  Fix with: pip3 install --break-system-packages adafruit-circuitpython-ina260")
+    print("  Or use venv: python3 -m venv venv && source venv/bin/activate && pip install adafruit-circuitpython-ina260")
     sys.exit(1)
 
 # ================= CONFIG =================

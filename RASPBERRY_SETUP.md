@@ -16,8 +16,17 @@ sudo apt install wrk
 
 ### 3. Install Python Dependencies (Blinka + INA260)
 ```bash
+sudo apt update
 sudo apt install python3-pip python3-dev python3-rpi.gpio i2c-tools
-pip3 install adafruit-blinka adafruit-circuitpython-ina260
+
+# Option A: Install system-wide (newer Raspberry Pi OS)
+pip3 install --break-system-packages adafruit-blinka adafruit-circuitpython-ina260
+
+# Option B: Use virtual environment (recommended for isolation)
+python3 -m venv venv
+source venv/bin/activate
+pip install adafruit-blinka adafruit-circuitpython-ina260
+# Then run scripts with: source venv/bin/activate && python3 full_pipeline_ab.py
 ```
 
 ### 4. Setup Node.js Server Dependencies (if testing Node)
