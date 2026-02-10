@@ -220,19 +220,28 @@ for server_name, server_config in SERVERS.items():
     print(f"⏱️  Checking if server is ready at {server_config['url']}...")
     
     server_ready = False
-    for attempt in range(10):
+    for attempt in range(30):  # Increased from 10 to 30 attempts (30 seconds total)
+        if attempt % 5 == 0 and attempt > 0:
+            print(f"   Still waiting... (attempt {attempt}/30)")
         try:
             result = subprocess.run(
                 ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", server_config["url"]],
                 capture_output=True,
-                timeout=2
+                timeout=3  # Increased timeout from 2 to 3 seconds
             )
-            if result.returncode == 0 and result.stdout.decode() in ["200", "404"]:
+            http_code = result.stdout.decode().strip()
+            if result.returncode == 0 and http_code in ["200", "404"]:
                 server_ready = True
-                print(f"✓ Server is ready!")
+                print(f"✓ Server is ready! (HTTP {http_code})")
                 break
-        except:
-            pass
+            elif http_code and attempt > 15:  # Show codes after 15s to help debug
+                print(f"   Got HTTP {http_code}, retrying...")
+        except subprocess.TimeoutExpired:
+            if attempt > 15:
+                print(f"   Curl timeout, server may be starting slowly...")
+        except Exception as e:
+            if attempt > 15:
+                print(f"   Connection error: {type(e).__name__}")
         time.sleep(1)
     
     if not server_ready:
