@@ -1,8 +1,20 @@
 import time, csv, subprocess, re, os, sys, shutil
 from datetime import datetime
 
-import board, busio
-from adafruit_ina260 import INA260
+try:
+    import board, busio
+except ModuleNotFoundError:
+    print("✗ Missing 'board'/'busio' modules (Adafruit Blinka not installed)")
+    print("  Fix with: sudo apt update && sudo apt install python3-rpi.gpio python3-dev i2c-tools")
+    print("             pip3 install adafruit-blinka")
+    sys.exit(1)
+
+try:
+    from adafruit_ina260 import INA260
+except ModuleNotFoundError:
+    print("✗ Missing 'adafruit_ina260' module")
+    print("  Fix with: pip3 install adafruit-circuitpython-ina260")
+    sys.exit(1)
 
 # ================= CONFIG =================
 BASELINE_DURATION = 5

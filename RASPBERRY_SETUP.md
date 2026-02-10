@@ -14,10 +14,10 @@ sudo apt update
 sudo apt install wrk
 ```
 
-### 3. Install Python Dependencies (for INA260 sensor)
+### 3. Install Python Dependencies (Blinka + INA260)
 ```bash
-sudo apt install python3-pip
-pip3 install adafruit-circuitpython-ina260
+sudo apt install python3-pip python3-dev python3-rpi.gpio i2c-tools
+pip3 install adafruit-blinka adafruit-circuitpython-ina260
 ```
 
 ### 4. Setup Node.js Server Dependencies (if testing Node)
@@ -61,3 +61,7 @@ git pull  # Gets latest code + updated JAR if rebuilt on Mac
 - ✅ Node.js requires `npm install` once (not in repo)
 - ✅ Make sure INA260 sensor is connected before running
 - ⚠️ Each run takes ~2 minutes (60s baseline + 60s test)
+
+### Troubleshooting
+- `ModuleNotFoundError: No module named 'board'`: Install Adafruit Blinka (`pip3 install adafruit-blinka`) and OS prerequisites (`python3-rpi.gpio`, `python3-dev`, `i2c-tools`). Ensure I2C is enabled in `raspi-config`.
+- I2C not found: Enable I2C via `sudo raspi-config` → Interfacing Options → I2C, then reboot. Verify with `ls /dev/i2c-1` and `i2cdetect -y 1`.
