@@ -130,21 +130,25 @@ def sample_power_while_running(csv_writer, process, sample_interval):
     ])
 
 def compute_energy(csv_file):
-    """Calculate energy from power measurements"""
-    t, p = [], []
+    """Calculate energy and average power metrics from measurements"""
+    t, v, c, p = [], [], [], []
     with open(csv_file) as f:
         r = csv.DictReader(f)
         for row in r:
             t.append(float(row["timestamp"]))
+            v.append(float(row["voltage_V"]))
+            c.append(float(row["current_A"]))
             p.append(float(row["power_W"]))
     
     if len(t) < 2:
-        return 0, 0, 0
+        return 0, 0, 0, 0, 0, 0
     
     energy = sum(p[i] * (t[i] - t[i-1]) for i in range(1, len(t)))
     duration = t[-1] - t[0]
+    avg_voltage = sum(v) / len(v)
+    avg_current = sum(c) / len(c)
     avg_power = sum(p) / len(p)
-    return energy, duration, avg_power
+    return energy, duration, avg_voltage, avg_current, avg_power
 
 def parse_ab(file):
     """Parse Apache Bench output for requests and duration"""
@@ -169,8 +173,8 @@ print("RUNNING BASELINE MEASUREMENT")
 print("=" * 60)
 baseline_csv = os.path.join(results_dir, "baseline.csv")
 sample_power(baseline_csv, BASELINE_DURATION)
-baseline_energy, baseline_dur, baseline_avg_power = compute_energy(baseline_csv)
-print(f"✓ Baseline complete: {baseline_avg_power:.2f}W average\n")
+baseline_energy, baseline_dur, baseline_avg_v, baseline_avg_c, baseline_avg_power = compute_energy(baseline_csv)
+print(f"✓ Baseline complete: {baseline_avg_v:.2f}V, {baseline_avg_c:.3f}A, {baseline_avg_power:.2f}W average\n")
 
 all_results = []
 test_count = 0
@@ -320,9 +324,10 @@ for server_name, server_config in SERVERS.items():
             continue
         
         # Calculate results
-        test_energy, test_dur, test_avg_power = compute_energy(test_csv)
+        test_energy, test_dur, test_avg_v, test_avg_c, test_avg_power = compute_energy(test_csv)
         baseline_scaled = baseline_avg_power * test_dur
         corrected_energy = test_energy - baseline_scaled
+        corrected_power = test_avg_power - baseline_avg_power
         
         completed_requests, ab_duration = parse_ab(ab_out)
         
@@ -335,6 +340,8 @@ for server_name, server_config in SERVERS.items():
             continue
         
         j_per_req = corrected_energy / completed_requests
+        w_per_req = corrected_power / completed_requests
+        a_per_req = test_avg_c / completed_requests if completed_requests > 0 else 0
         
         result = {
             "server": server_name,
@@ -342,14 +349,21 @@ for server_name, server_config in SERVERS.items():
             "target_requests": request_count,
             "completed_requests": completed_requests,
             "duration_s": ab_duration,
-            "energy_j": corrected_energy,
+            "avg_voltage_v": test_avg_v,
+            "avg_current_a": test_avg_c,
+            "avg_power_w": corrected_power,
+            "total_energy_j": corrected_energy,
             "j_per_req": j_per_req,
+            "w_per_req": w_per_req,
+            "a_per_req": a_per_req,
             "req_per_sec": completed_requests / ab_duration if ab_duration > 0 else 0
         }
         all_results.append(result)
         
         print(f"✓ Complete: {completed_requests}/{request_count} requests in {ab_duration:.2f}s")
-        print(f"   Energy: {corrected_energy:.2f}J, {j_per_req:.6f}J/req, {result['req_per_sec']:.2f}req/s")
+        print(f"   Power: {test_avg_v:.2f}V × {test_avg_c:.3f}A = {corrected_power:.2f}W avg")
+        print(f"   Energy: {corrected_energy:.2f}J total, {j_per_req:.6f}J/req")
+        print(f"   Per-request: {w_per_req:.6f}W, {a_per_req:.6f}A, {result['req_per_sec']:.2f}req/s")
         
         # Cooldown between endpoints (except after last one)
         if endpoint_idx < len(ENDPOINTS) - 1:
@@ -377,31 +391,34 @@ print("=" * 60)
 
 all_results.sort(key=lambda x: x["j_per_req"])
 
-print("\n{:<10} {:<12} {:>10} {:>10} {:>10} {:>12} {:>15}".format(
-    "Server", "Endpoint", "Requests", "Duration", "Req/s", "Energy (J)", "J/request"
+print("\n{:<10} {:<12} {:>8} {:>8} {:>8} {:>8} {:>10} {:>10} {:>10} {:>10}".format(
+    "Server", "Endpoint", "Reqs", "V(avg)", "A(avg)", "W(avg)", "Total J", "J/req", "W/req", "A/req"
 ))
-print("-" * 85)
+print("-" * 108)
 for r in all_results:
-    print("{:<10} {:<12} {:>10} {:>10.2f} {:>10.2f} {:>12.2f} {:>15.6f}".format(
+    print("{:<10} {:<12} {:>8} {:>8.2f} {:>8.3f} {:>8.2f} {:>10.2f} {:>10.6f} {:>10.6f} {:>10.6f}".format(
         r["server"], r["endpoint"], r["completed_requests"], 
-        r["duration_s"], r["req_per_sec"], r["energy_j"], r["j_per_req"]
+        r["avg_voltage_v"], r["avg_current_a"], r["avg_power_w"], 
+        r["total_energy_j"], r["j_per_req"], r["w_per_req"], r["a_per_req"]
     ))
 
 summary_csv = os.path.join(results_dir, "summary.csv")
 with open(summary_csv, "w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=["server", "endpoint", "target_requests", "completed_requests", 
-                                      "duration_s", "req_per_sec", "energy_j", "j_per_req"])
+                                      "duration_s", "req_per_sec", "avg_voltage_v", "avg_current_a", 
+                                      "avg_power_w", "total_energy_j", "j_per_req", "w_per_req", "a_per_req"])
     w.writeheader()
     w.writerows(all_results)
 
 latex_file = os.path.join(results_dir, "results.tex")
 with open(latex_file, "w") as f:
-    f.write("\\begin{tabular}{llrrrrrr}\n\\hline\n")
-    f.write("Server & Endpoint & Requests & Duration (s) & Req/s & Energy (J) & J/request \\\\\n\\hline\n")
+    f.write("\\begin{tabular}{llrrrrrrrrr}\n\\hline\n")
+    f.write("Server & Endpoint & Reqs & V(avg) & A(avg) & W(avg) & Total J & J/req & W/req & A/req \\\\\n\\hline\n")
     for r in all_results:
         f.write(f"{r['server']} & {r['endpoint']} & {r['completed_requests']} & "
-                f"{r['duration_s']:.2f} & {r['req_per_sec']:.2f} & "
-                f"{r['energy_j']:.2f} & {r['j_per_req']:.6f} \\\\\n")
+                f"{r['avg_voltage_v']:.2f} & {r['avg_current_a']:.3f} & {r['avg_power_w']:.2f} & "
+                f"{r['total_energy_j']:.2f} & {r['j_per_req']:.6f} & "
+                f"{r['w_per_req']:.6f} & {r['a_per_req']:.6f} \\\\\n")
     f.write("\\hline\n\\end{tabular}\n")
 
 print(f"\n📁 All results saved to: {results_dir}/")
