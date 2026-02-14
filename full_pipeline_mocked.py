@@ -42,7 +42,7 @@ ENDPOINTS = ["/cpu", "/memory", "/io", "/mixed"]
 # Create results directory structure
 os.makedirs("results", exist_ok=True)
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-results_dir = os.path.join("results", f"cvadataed_{timestamp}")
+results_dir = os.path.join("results", f"AVJWData_{timestamp}")
 os.makedirs(results_dir, exist_ok=True)
 
 def cvadata_sample_power(csv_file, duration, is_baseline=True):
@@ -92,7 +92,7 @@ def parse_wrk(file):
 
 # ========== BASELINE ==========
 print("=" * 60)
-print("RUNNING BASELINE MEASUREMENT (cvadataED)")
+print("RUNNING BASELINE MEASUREMENT (AVJWData)")
 print("=" * 60)
 baseline_csv = os.path.join(results_dir, "baseline.csv")
 cvadata_sample_power(baseline_csv, BASELINE_DURATION, is_baseline=True)
@@ -182,7 +182,7 @@ for server_name, server_config in SERVERS.items():
         
         url = server_config["url"] + endpoint
         print(f"🔥 Running load test: {url}")
-        print(f"📊 Measuring power for {TEST_DURATION}s (cvadataed)...")
+        print(f"📊 Measuring power for {TEST_DURATION}s (AVJWData)...")
         
         wrk_cmd = [
             "wrk",

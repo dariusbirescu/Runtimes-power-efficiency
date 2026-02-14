@@ -4,7 +4,7 @@ __pycache__/
 *.csv
 *.txt
 *.tex
-results_cvadataed.tex
+results_AVJWData.tex
 
 # Java
 *.class

@@ -44,7 +44,7 @@ ENDPOINTS = {
 # Create results directory
 os.makedirs("results", exist_ok=True)
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-results_dir = os.path.join("results", f"ab_cvadataed_{timestamp}")
+results_dir = os.path.join("results", f"ab_AVJWData_{timestamp}")
 os.makedirs(results_dir, exist_ok=True)
 
 def cvadata_sample_power(csv_file, duration, is_baseline=True):
@@ -104,7 +104,7 @@ def parse_ab(file):
 
 # ========== BASELINE ==========
 print("=" * 60)
-print("RUNNING BASELINE MEASUREMENT (cvadataED)")
+print("RUNNING BASELINE MEASUREMENT (AVJWData)")
 print("=" * 60)
 baseline_csv = os.path.join(results_dir, "baseline.csv")
 cvadata_sample_power(baseline_csv, BASELINE_DURATION, is_baseline=True)
