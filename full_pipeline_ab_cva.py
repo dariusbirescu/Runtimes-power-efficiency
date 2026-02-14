@@ -34,10 +34,10 @@ SERVERS = {
 
 # Request counts chosen for balanced completion times
 ENDPOINTS = {
-    "/cpu": 50,
-    "/memory": 100,
-    "/io": 25,
-    "/mixed": 50
+    "/cpu": 300,
+    "/memory": 600,
+    "/io": 150,
+    "/mixed": 400
 }
 # =========================================
 

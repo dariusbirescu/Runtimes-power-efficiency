@@ -50,10 +50,10 @@ SERVERS = {
 # Request counts provide sufficient samples (n>300) for each endpoint
 # Balanced for ~15-25s test duration - enough for stable energy measurements
 ENDPOINTS = {
-    "/cpu": 50,       # CPU-intensive: ~15-20s @ ~40-50 req/s
-    "/memory": 100,   # Memory ops: ~15-20s @ ~100-120 req/s  
-    "/io": 25,        # I/O-bound: ~15-20s @ ~15-20 req/s
-    "/mixed": 50      # Balanced: ~15-20s @ ~50-60 req/s
+    "/cpu": 300,       # CPU-intensive: ~60-75s @ ~40-50 req/s
+    "/memory": 600,   # Memory ops: ~50-60s @ ~100-120 req/s  
+    "/io": 150,        # I/O-bound: ~75-90s @ ~15-20 req/s
+    "/mixed": 400      # Balanced: ~65-80s @ ~50-60 req/s
 }
 # =========================================
 
