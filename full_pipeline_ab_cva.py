@@ -2,11 +2,11 @@ import time, csv, subprocess, re, os
 from datetime import datetime
 
 # ================= CONFIG =================
-BASELINE_DURATION = 5
+BASELINE_DURATION = 30
 SAMPLE_INTERVAL = 0.2
-COOLDOWN_BETWEEN_ENDPOINTS = 5
+COOLDOWN_BETWEEN_ENDPOINTS = 15
 
-AB_CONCURRENCY = 3
+AB_CONCURRENCY = 5
 
 # ===== cvadata INA260 SENSOR DATA =====
 BASELINE_VOLTAGE = 5.1
@@ -22,22 +22,22 @@ SERVERS = {
         "cmd": ["java", "-jar", "target/energy-test-1.0.0.jar"],
         "cwd": "java-spring",
         "url": "http://localhost:8080",
-        "warmup": 10
+        "warmup": 15
     },
     "node": {
         "cmd": ["node", "index.js"],
         "cwd": "nodejs",
         "url": "http://localhost:3000",
-        "warmup": 5
+        "warmup": 10
     }
 }
 
 # Request counts chosen for balanced completion times
 ENDPOINTS = {
-    "/cpu": 300,
-    "/memory": 600,
-    "/io": 150,
-    "/mixed": 400
+    "/cpu": 600,
+    "/memory": 1500,
+    "/io": 400,
+    "/mixed": 800
 }
 # =========================================
 

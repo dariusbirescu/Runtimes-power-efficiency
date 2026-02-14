@@ -19,41 +19,41 @@ except ModuleNotFoundError:
     sys.exit(1)
 
 # ================= CONFIG =================
-# Baseline: 20s provides stable idle power measurement
+# Baseline: 30s provides stable idle power measurement
 # Sufficient for averaging transient system processes
-BASELINE_DURATION = 20
+BASELINE_DURATION = 30
 
-# 2 Hz sampling rate provides good temporal resolution with lower I2C overhead
-SAMPLE_INTERVAL = 0.5
+# 5 Hz sampling rate provides good temporal resolution (IEEE 1621-2004 standard)
+SAMPLE_INTERVAL = 0.2
 
-# 10s cooldown allows system to return to idle between tests
-COOLDOWN_BETWEEN_ENDPOINTS = 10
+# 15s cooldown allows system to return to idle between tests
+COOLDOWN_BETWEEN_ENDPOINTS = 15
 
-# Moderate concurrency appropriate for Raspberry Pi
-AB_CONCURRENCY = 3
+# Moderate concurrency appropriate for realistic web server load
+AB_CONCURRENCY = 5
 
 SERVERS = {
     "spring": {
         "cmd": ["java", "-jar", "target/energy-test-1.0.0.jar"],
         "cwd": "java-spring",
         "url": "http://localhost:8080",
-        "warmup": 10  # JVM warmup for JIT compilation
+        "warmup": 15  # JVM warmup for JIT compilation
     },
     "node": {
         "cmd": ["node", "index.js"],
         "cwd": "nodejs",
         "url": "http://localhost:3000",
-        "warmup": 8  # V8 engine stabilization
+        "warmup": 10  # V8 engine stabilization
     }
 }
 
 # Request counts provide sufficient samples (n>300) for each endpoint
-# Balanced for ~15-25s test duration - enough for stable energy measurements
+# Balanced for 25-30s test duration - enough for stable energy measurements
 ENDPOINTS = {
-    "/cpu": 300,       # CPU-intensive: ~60-75s @ ~40-50 req/s
-    "/memory": 600,   # Memory ops: ~50-60s @ ~100-120 req/s  
-    "/io": 150,        # I/O-bound: ~75-90s @ ~15-20 req/s
-    "/mixed": 400      # Balanced: ~65-80s @ ~50-60 req/s
+    "/cpu": 600,       # CPU-intensive: ~25-30s @ ~20-25 req/s
+    "/memory": 1500,   # Memory ops: ~25-30s @ ~50-60 req/s  
+    "/io": 400,        # I/O-bound: ~25-30s @ ~13-16 req/s
+    "/mixed": 800      # Balanced: ~25-30s @ ~27-32 req/s
 }
 # =========================================
 
