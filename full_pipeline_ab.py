@@ -30,7 +30,7 @@ SAMPLE_INTERVAL = 0.2
 COOLDOWN_BETWEEN_ENDPOINTS = 10
 
 # Moderate concurrency appropriate for Raspberry Pi
-AB_CONCURRENCY = 5
+AB_CONCURRENCY = 1
 
 SERVERS = {
     "spring": {
@@ -50,10 +50,10 @@ SERVERS = {
 # Request counts provide sufficient samples (n>300) for each endpoint
 # Balanced for ~15-25s test duration - enough for stable energy measurements
 ENDPOINTS = {
-    "/cpu": 800,       # CPU-intensive: ~15-20s @ ~40-50 req/s
-    "/memory": 2000,   # Memory ops: ~15-20s @ ~100-120 req/s  
-    "/io": 300,        # I/O-bound: ~15-20s @ ~15-20 req/s
-    "/mixed": 1000     # Balanced: ~15-20s @ ~50-60 req/s
+    "/cpu": 400,       # CPU-intensive: ~15-20s @ ~40-50 req/s
+    "/memory": 1000,   # Memory ops: ~15-20s @ ~100-120 req/s  
+    "/io": 150,        # I/O-bound: ~15-20s @ ~15-20 req/s
+    "/mixed": 500      # Balanced: ~15-20s @ ~50-60 req/s
 }
 # =========================================
 

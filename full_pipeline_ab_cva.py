@@ -6,7 +6,7 @@ BASELINE_DURATION = 5
 SAMPLE_INTERVAL = 0.2
 COOLDOWN_BETWEEN_ENDPOINTS = 5
 
-AB_CONCURRENCY = 5
+AB_CONCURRENCY = 1
 
 # ===== cvadata INA260 SENSOR DATA =====
 BASELINE_VOLTAGE = 5.1
@@ -34,10 +34,10 @@ SERVERS = {
 
 # Request counts chosen for balanced completion times
 ENDPOINTS = {
-    "/cpu": 50,
-    "/memory": 200,
-    "/io": 20,
-    "/mixed": 100
+    "/cpu": 30,
+    "/memory": 100,
+    "/io": 10,
+    "/mixed": 50
 }
 # =========================================
 
