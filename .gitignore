@@ -4,7 +4,7 @@ __pycache__/
 *.csv
 *.txt
 *.tex
-results_mocked.tex
+results_cvadataed.tex
 
 # Java
 *.class

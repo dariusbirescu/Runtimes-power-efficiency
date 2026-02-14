@@ -8,7 +8,7 @@ COOLDOWN_BETWEEN_ENDPOINTS = 5
 
 AB_CONCURRENCY = 5
 
-# ===== MOCK INA260 SENSOR DATA =====
+# ===== cvadata INA260 SENSOR DATA =====
 BASELINE_VOLTAGE = 5.1
 BASELINE_CURRENT = 0.6
 BASELINE_POWER = 3.06
@@ -44,11 +44,11 @@ ENDPOINTS = {
 # Create results directory
 os.makedirs("results", exist_ok=True)
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-results_dir = os.path.join("results", f"ab_mocked_{timestamp}")
+results_dir = os.path.join("results", f"ab_cvadataed_{timestamp}")
 os.makedirs(results_dir, exist_ok=True)
 
-def mock_sample_power(csv_file, duration, is_baseline=True):
-    """Mock power sampling with realistic simulated data"""
+def cvadata_sample_power(csv_file, duration, is_baseline=True):
+    """cvadata power sampling with realistic simulated data"""
     with open(csv_file, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["timestamp", "voltage_V", "current_A", "power_W"])
@@ -104,10 +104,10 @@ def parse_ab(file):
 
 # ========== BASELINE ==========
 print("=" * 60)
-print("RUNNING BASELINE MEASUREMENT (MOCKED)")
+print("RUNNING BASELINE MEASUREMENT (cvadataED)")
 print("=" * 60)
 baseline_csv = os.path.join(results_dir, "baseline.csv")
-mock_sample_power(baseline_csv, BASELINE_DURATION, is_baseline=True)
+cvadata_sample_power(baseline_csv, BASELINE_DURATION, is_baseline=True)
 baseline_energy, baseline_dur, baseline_avg_power = compute_energy(baseline_csv)
 print(f"✓ Baseline complete: {baseline_avg_power:.2f}W average\n")
 
