@@ -23,14 +23,14 @@ except ModuleNotFoundError:
 # Sufficient for averaging transient system processes
 BASELINE_DURATION = 20
 
-# 5 Hz sampling rate provides good temporal resolution
-SAMPLE_INTERVAL = 0.2
+# 2 Hz sampling rate provides good temporal resolution with lower I2C overhead
+SAMPLE_INTERVAL = 0.5
 
 # 10s cooldown allows system to return to idle between tests
 COOLDOWN_BETWEEN_ENDPOINTS = 10
 
 # Moderate concurrency appropriate for Raspberry Pi
-AB_CONCURRENCY = 1
+AB_CONCURRENCY = 2
 
 SERVERS = {
     "spring": {
