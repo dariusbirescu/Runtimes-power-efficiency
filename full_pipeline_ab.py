@@ -189,7 +189,10 @@ test_count = 0
 total_tests = len(SERVERS) * len(ENDPOINTS)
 
 # ========== RUN ALL TESTS ==========
-for server_name, server_config in SERVERS.items():
+# Execute servers in order: Node.js first, then Spring Boot
+SERVER_ORDER = ["node", "spring"]
+for server_name in SERVER_ORDER:
+    server_config = SERVERS[server_name]
     print("=" * 60)
     print(f"STARTING {server_name.upper()} SERVER")
     print("=" * 60)
