@@ -74,16 +74,19 @@ def load_power_data(csv_file: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, 
 
 
 def compute_energy(timestamps: np.ndarray, powers: np.ndarray) -> float:
-    """
-    Compute total energy using trapezoidal integration.
-    
-    Energy (J) = integral of Power (W) over time (s)
+    """Compute total energy using trapezoidal integration.
+
+    Energy (J) = integral of Power (W) over time (s).
+
+    Implemented manually instead of using ``np.trapz`` to avoid
+    version-specific NumPy API differences.
     """
     if len(timestamps) < 2:
         return 0.0
-    
-    # Trapezoidal rule integration
-    energy = np.trapz(powers, timestamps)
+
+    dt = timestamps[1:] - timestamps[:-1]
+    avg_power = (powers[1:] + powers[:-1]) * 0.5
+    energy = float(np.sum(avg_power * dt))
     return energy
 
 

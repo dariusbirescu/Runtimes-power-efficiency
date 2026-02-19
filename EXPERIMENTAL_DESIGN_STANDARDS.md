@@ -10,16 +10,25 @@ This document outlines the scientific standards, theorems, and industry best pra
 ### 1. **Sample Rate: 0.2 seconds (5 Hz)**
 
 **Standards & Justification:**
-- **Industry Standard**: IEEE 1621-2004 (Standard for User Interface Elements in Power Control of Electronic Devices) recommends 5-10 Hz for power consumption measurements.
-- **Temporal Resolution**: Web request processing occurs at 10-500ms timescales. Sampling at 5 Hz (200ms intervals) provides adequate temporal resolution to capture power variations during request handling without aliasing effects.
+- **Temporal Resolution**: Web request processing occurs at 10-500ms timescales. Sampling at 5 Hz (200ms intervals) provides adequate temporal resolution to capture power variations during request handling.
 - **Energy Integration**: Unlike signal reconstruction (where Nyquist-Shannon applies), energy measurement involves integration/averaging. The sampling rate must be sufficient to capture the dynamic range of power consumption, not reconstruct the exact waveform.
-- **Scientific Literature**: Studies on energy efficiency (e.g., "Energy Efficiency Benchmarking Methodology" - ACM SIGMETRICS) typically use 5-20 Hz sampling rates. PowerScope (Flinn & Satyanarayanan, 1999) used 1.9 Hz; modern studies use 5-10 Hz.
-- **Practical Consideration**: Balances temporal resolution with I2C bus overhead (3 reads × 5 Hz = 15 transactions/sec) and data volume.
+- **Literature Precedent**: 
+  - **PowerScope** (Flinn & Satyanarayanan, 1999): Sampled at ~5200 Hz using high-speed digital multimeter for fine-grained profiling
+  - **SPEC Power Benchmarks**: Use 1 Hz sampling (1-second intervals) for long-running server power characterization
+  - **Smartphone Energy Profiling** (e.g., Pathak et al. 2012): Typically sample at 10-100 Hz using battery voltage/current monitors
+  - **IEC 62301:2011** (household appliances): Recommends measurement intervals that effectively provide 1-10 Hz rates
+- **Our Choice (5 Hz)**: Significantly lower than PowerScope's rate, but appropriate given:
+  - **I2C overhead constraint**: 3 separate register reads per sample; 5 Hz = 15 I2C transactions/sec is manageable
+  - **Workload characteristics**: Web requests complete in 10-500ms; 200ms sampling captures request-level behavior
+  - **Measurement slowdown**: Higher rates (100+ Hz) could introduce timing perturbations in the Raspberry Pi
+  - **Energy integration**: Total energy is cumulative; missing fast transients has minimal impact on total joules consumed
+- **Trade-off Acknowledgment**: We sacrifice fine-grained temporal detail for practical measurement feasibility on embedded hardware.
 
 **References:**
-- IEEE 1621-2004 Standard for Power Control Interfaces
-- Flinn, J., & Satyanarayanan, M. (1999). "PowerScope: A Tool for Profiling the Energy Usage of Mobile Applications"
-- Pathak, A., et al. (2012). "Energy-Efficient Software: A Survey of Recent Approaches"
+- Flinn, J., & Satyanarayanan, M. (1999). "PowerScope: A Tool for Profiling the Energy Usage of Mobile Applications." OSDI.
+- Pathak, A., Hu, Y.C., & Zhang, M. (2012). "Where is the energy spent inside my app? Fine Grained Energy Accounting on Smartphones with Eprof." EuroSys.
+- IEC 62301:2011. "Household electrical appliances - Measurement of standby power."
+- SPEC Power Committee. "SPECpower_ssj2008 Benchmark Methodology."
 
 ---
 
@@ -202,7 +211,7 @@ This document outlines the scientific standards, theorems, and industry best pra
 
 | Parameter | Value | Samples/Result | Standard Met |
 |-----------|-------|----------------|--------------|
-| **Sample Rate** | 0.2s (5 Hz) | - | IEEE 1621-2004 (5-10 Hz) |
+| **Sample Rate** | 0.2s (5 Hz) | - | Conservative rate (lit: 1-5200 Hz) |
 | **Baseline Duration** | 30s | 150 samples | CLT (n≥30), gives n=150 |
 | **Test Duration** | 25-30s | 125-150 samples | IEEE 829-2008 (20-60s) |
 | **Cooldown Period** | 15s | - | Thermal stabilization |
@@ -324,11 +333,11 @@ The methodology ensures:
 
 ## References Summary
 
-1. **IEEE Standards**: IEEE 1621-2004 (Power Control), IEEE 829-2008 (Software Test Documentation)
+1. **IEEE & IEC Standards**: IEEE 829-2008 (Software Test Documentation), IEC 62301:2011 (Household appliances power measurement)
 2. **Statistical Methods**: Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences
 3. **Performance Analysis**: Jain, R. (1991). The Art of Computer Systems Performance Analysis
 4. **JVM Benchmarking**: Georges, A., et al. (2007). Statistically Rigorous Java Performance Evaluation. OOPSLA
-5. **Power Measurement**: Flinn, J., & Satyanarayanan, M. (1999). PowerScope: A Tool for Profiling the Energy Usage of Mobile Applications
+5. **Power Measurement**: Flinn, J., & Satyanarayanan, M. (1999). PowerScope: A Tool for Profiling the Energy Usage of Mobile Applications. OSDI (~5200 Hz sampling with DMM)
 6. **Energy-Aware Computing**: Pathak, A., et al. (2011, 2012). Energy-Aware Mobile Application Development
 7. **Normality Testing**: Razali, N.M., & Wah, Y.B. (2011). Power comparisons of Shapiro-Wilk, Kolmogorov-Smirnov, Lilliefors and Anderson-Darling tests
 8. **Statistical Reporting**: Wilkinson, L. (1999). Statistical Methods in Psychology Journals. American Psychologist
@@ -339,4 +348,10 @@ The methodology ensures:
 ---
 
 **Last Updated**: 2026-02-14  
-**Configuration Version**: Academic Standard v1.1 (Corrected)
+**Configuration Version**: Academic Standard v1.3 (Corrected PowerScope Citation)
+
+**Revision Notes**:
+- v1.3: Corrected PowerScope sampling rate (5200 Hz, not 1.9 Hz) - acknowledged our 5 Hz is actually much lower than PowerScope's fine-grained profiling
+- v1.2: Corrected sampling rate citations to reflect verifiable literature sources (removed incorrect IEEE 1621-2004 reference)
+- v1.1: Fixed Nyquist theorem misapplication and Cohen's d statistical power calculations
+- v1.0: Initial academic standard configuration

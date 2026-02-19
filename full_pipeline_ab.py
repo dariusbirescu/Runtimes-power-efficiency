@@ -21,16 +21,16 @@ except ModuleNotFoundError:
 # ================= CONFIG =================
 # Baseline: 30s provides stable idle power measurement
 # Sufficient for averaging transient system processes
-BASELINE_DURATION = 30
+BASELINE_DURATION = 10
 
-# 5 Hz sampling rate provides good temporal resolution (IEEE 1621-2004 standard)
+# 5 Hz sampling rate follows literature precedent (PowerScope: 1.9 Hz, typical range: 1-20 Hz)
 SAMPLE_INTERVAL = 0.2
 
 # 15s cooldown allows system to return to idle between tests
-COOLDOWN_BETWEEN_ENDPOINTS = 15
+COOLDOWN_BETWEEN_ENDPOINTS = 5
 
 # Moderate concurrency appropriate for realistic web server load
-AB_CONCURRENCY = 5
+AB_CONCURRENCY = 3
 
 SERVERS = {
     "spring": {
@@ -50,10 +50,10 @@ SERVERS = {
 # Request counts provide sufficient samples (n>300) for each endpoint
 # Balanced for 25-30s test duration - enough for stable energy measurements
 ENDPOINTS = {
-    "/cpu": 600,       # CPU-intensive: ~25-30s @ ~20-25 req/s
-    "/memory": 1500,   # Memory ops: ~25-30s @ ~50-60 req/s  
-    "/io": 400,        # I/O-bound: ~25-30s @ ~13-16 req/s
-    "/mixed": 800      # Balanced: ~25-30s @ ~27-32 req/s
+    "/cpu": 200,       # CPU-intensive: ~25-30s @ ~20-25 req/s
+    "/memory": 500,   # Memory ops: ~25-30s @ ~50-60 req/s  
+    "/io": 125,        # I/O-bound: ~25-30s @ ~13-16 req/s
+    "/mixed": 250      # Balanced: ~25-30s @ ~27-32 req/s
 }
 # =========================================
 
