@@ -50,10 +50,10 @@ SERVERS = {
 # Request counts provide sufficient samples (n>300) for each endpoint
 # Balanced for 25-30s test duration - enough for stable energy measurements
 ENDPOINTS = {
-    "/cpu": 200,       # CPU-intensive: ~25-30s @ ~20-25 req/s
-    "/memory": 500,   # Memory ops: ~25-30s @ ~50-60 req/s  
-    "/io": 125,        # I/O-bound: ~25-30s @ ~13-16 req/s
-    "/mixed": 250      # Balanced: ~25-30s @ ~27-32 req/s
+    "/cpu": 100,       # CPU-intensive: ~25-30s @ ~20-25 req/s
+    "/memory": 250,   # Memory ops: ~25-30s @ ~50-60 req/s  
+    "/io": 75,        # I/O-bound: ~25-30s @ ~13-16 req/s
+    "/mixed": 125      # Balanced: ~25-30s @ ~27-32 req/s
 }
 # =========================================
 
@@ -190,7 +190,7 @@ total_tests = len(SERVERS) * len(ENDPOINTS)
 
 # ========== RUN ALL TESTS ==========
 # Execute servers in order: Node.js first, then Spring Boot
-SERVER_ORDER = ["node", "spring"]
+SERVER_ORDER = ["spring", "node"]
 for server_name in SERVER_ORDER:
     server_config = SERVERS[server_name]
     print("=" * 60)
